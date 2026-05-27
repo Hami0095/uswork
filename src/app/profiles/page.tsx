@@ -77,9 +77,9 @@ export default function Profiles() {
       name: formData.name,
       niche: formData.niche,
       hourlyRate: Number(formData.hourlyRate),
-      skills: formData.skills
+      skills: typeof formData.skills === 'string'
         ? formData.skills.split(",").map((s) => s.trim()).filter(Boolean)
-        : [],
+        : formData.skills,
       connectsBalance: Number(formData.connectsBalance),
       successRate: formData.successRate !== null ? Number(formData.successRate) : null,
       activeContracts: Number(formData.activeContracts),
@@ -87,11 +87,21 @@ export default function Profiles() {
       availability: formData.availability,
     }
 
+    let error;
     if (formData.id) {
-      await supabase.from("Profile").update(payload).eq("id", formData.id)
+      const res = await supabase.from("Profile").update(payload).eq("id", formData.id)
+      error = res.error
     } else {
-      await supabase.from("Profile").insert(payload)
+      const res = await supabase.from("Profile").insert([payload])
+      error = res.error
     }
+    
+    if (error) {
+      console.error("Error saving profile:", error)
+      alert("Failed to save profile: " + error.message)
+      return
+    }
+
     setIsModalOpen(false)
     fetchData()
   }
