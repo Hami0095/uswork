@@ -3,143 +3,238 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
-  Cell
 } from "recharts"
-import { Briefcase, DollarSign, Target, Zap } from "lucide-react"
+import { Briefcase, DollarSign, Target, Zap, Users } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 
-const data = [
-  { name: "Mon", proposals: 4, interviews: 1 },
-  { name: "Tue", proposals: 7, interviews: 2 },
-  { name: "Wed", proposals: 5, interviews: 0 },
-  { name: "Thu", proposals: 8, interviews: 3 },
-  { name: "Fri", proposals: 12, interviews: 4 },
-  { name: "Sat", proposals: 2, interviews: 0 },
-  { name: "Sun", proposals: 3, interviews: 1 },
-]
+// Build last-7-days labels
+function getLast7Days() {
+  const days = []
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    days.push({
+      name: d.toLocaleDateString("en-US", { weekday: "short" }),
+      date: d.toISOString().split("T")[0],
+      proposals: 0,
+      hired: 0,
+    })
+  }
+  return days
+}
 
 export default function Dashboard() {
-  const [recentProposals, setRecentProposals] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [recentProposals, setRecentProposals] = useState<any[]>([])
+  const [chartData, setChartData] = useState(getLast7Days())
+  const [stats, setStats] = useState({
+    totalEarnings: 0,
+    totalProposals: 0,
+    totalConnects: 0,
+    winRate: 0,
+    profileCount: 0,
+  })
 
   useEffect(() => {
-    async function fetchData() {
-      const { data: proposals, error } = await supabase
-        .from('Proposal')
-        .select(`
-          id,
-          jobTitle,
-          status,
-          Profile ( name )
-        `)
-        .order('appliedAt', { ascending: false })
-        .limit(5)
-      
-      if (!error && proposals) {
-        setRecentProposals(proposals)
-      }
-      setLoading(false)
-    }
-    fetchData()
+    fetchAll()
   }, [])
+
+  async function fetchAll() {
+    setLoading(true)
+
+    // Fetch all proposals
+    const { data: proposals } = await supabase
+      .from("Proposal")
+      .select("id, jobTitle, status, appliedAt, Profile ( name )")
+      .order("appliedAt", { ascending: false })
+
+    // Fetch all profiles for connects + earnings
+    const { data: profiles } = await supabase
+      .from("Profile")
+      .select("connectsBalance, totalEarnings")
+
+    if (proposals) {
+      // Recent 5
+      setRecentProposals(proposals.slice(0, 5))
+
+      // Chart: count proposals per day for last 7 days
+      const days = getLast7Days()
+      proposals.forEach((p) => {
+        const pDate = p.appliedAt?.split("T")[0]
+        const dayEntry = days.find((d) => d.date === pDate)
+        if (dayEntry) {
+          dayEntry.proposals += 1
+          if (p.status === "Hired") dayEntry.hired += 1
+        }
+      })
+      setChartData(days)
+
+      // Win rate = Hired / total proposals
+      const hired = proposals.filter((p) => p.status === "Hired").length
+      const winRate =
+        proposals.length > 0
+          ? Math.round((hired / proposals.length) * 100 * 10) / 10
+          : 0
+
+      // Aggregate profile stats
+      const totalConnects = profiles
+        ? profiles.reduce((sum, p) => sum + (p.connectsBalance ?? 0), 0)
+        : 0
+      const totalEarnings = profiles
+        ? profiles.reduce((sum, p) => sum + (p.totalEarnings ?? 0), 0)
+        : 0
+
+      setStats({
+        totalEarnings,
+        totalProposals: proposals.length,
+        totalConnects,
+        winRate,
+        profileCount: profiles?.length ?? 0,
+      })
+    }
+
+    setLoading(false)
+  }
+
+  const fmt = (n: number) =>
+    n >= 1000
+      ? `$${(n / 1000).toFixed(1)}k`
+      : `$${n.toLocaleString()}`
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
-          <p className="text-muted-foreground mt-1">Track agency performance, connects, and proposals across all profiles.</p>
-        </div>
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
+        <p className="text-muted-foreground mt-1">
+          Track agency performance, connects, and proposals across all profiles.
+        </p>
       </div>
 
+      {/* Stat Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$45,231.89</div>
-            <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+            <div className="text-2xl font-bold">
+              {loading ? "—" : fmt(stats.totalEarnings)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Across {stats.profileCount} profile{stats.profileCount !== 1 ? "s" : ""}
+            </p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Proposals Sent</CardTitle>
             <Briefcase className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+2350</div>
-            <p className="text-xs text-muted-foreground">+180 this week</p>
+            <div className="text-2xl font-bold">
+              {loading ? "—" : stats.totalProposals.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">All time, all profiles</p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Connects Remaining</CardTitle>
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,204</div>
-            <p className="text-xs text-muted-foreground">Across 5 profiles</p>
+            <div className="text-2xl font-bold">
+              {loading ? "—" : stats.totalConnects.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Across {stats.profileCount} profile{stats.profileCount !== 1 ? "s" : ""}
+            </p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12.4%</div>
-            <p className="text-xs text-muted-foreground">+2.4% from last month</p>
+            <div className="text-2xl font-bold">
+              {loading ? "—" : `${stats.winRate}%`}
+            </div>
+            <p className="text-xs text-muted-foreground">Proposals → Hired</p>
           </CardContent>
         </Card>
       </div>
 
+      {/* Chart + Recent Proposals */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
           <CardHeader>
             <CardTitle>Proposal Activity</CardTitle>
-            <CardDescription>Proposals sent and interviews landed over the last 7 days.</CardDescription>
+            <CardDescription>
+              Proposals sent and hires in the last 7 days.
+            </CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
             <div className="h-[300px] w-full mt-4">
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={data}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke="hsl(var(--muted-foreground))" 
-                    fontSize={12} 
-                    tickLine={false} 
-                    axisLine={false} 
+                <BarChart data={chartData}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="hsl(var(--border))"
                   />
-                  <YAxis 
-                    stroke="hsl(var(--muted-foreground))" 
-                    fontSize={12} 
-                    tickLine={false} 
-                    axisLine={false} 
-                    tickFormatter={(value) => `${value}`} 
+                  <XAxis
+                    dataKey="name"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
                   />
-                  <Tooltip 
-                    cursor={{fill: 'transparent'}}
-                    contentStyle={{ 
-                      borderRadius: '8px', 
-                      border: '1px solid hsl(var(--border))', 
-                      backgroundColor: 'hsl(var(--background))',
-                      color: 'hsl(var(--foreground))'
-                    }} 
-                    itemStyle={{ color: 'hsl(var(--foreground))' }}
+                  <YAxis
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    allowDecimals={false}
                   />
-                  <Bar dataKey="proposals" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} activeBar={{ fill: 'hsl(var(--primary))', opacity: 0.8 }} />
-                  <Bar dataKey="interviews" fill="hsl(var(--ring))" radius={[4, 4, 0, 0]} activeBar={{ fill: 'hsl(var(--ring))', opacity: 0.8 }} />
+                  <Tooltip
+                    cursor={{ fill: "transparent" }}
+                    contentStyle={{
+                      borderRadius: "8px",
+                      border: "1px solid hsl(var(--border))",
+                      backgroundColor: "hsl(var(--background))",
+                      color: "#f97316",
+                    }}
+                    itemStyle={{ color: "#f97316" }}
+                    labelStyle={{ color: "#f97316", fontWeight: 600 }}
+                  />
+                  <Bar
+                    dataKey="proposals"
+                    name="Proposals"
+                    fill="hsl(var(--primary))"
+                    radius={[4, 4, 0, 0]}
+                    activeBar={{ fill: "hsl(var(--primary))", opacity: 0.8 }}
+                  />
+                  <Bar
+                    dataKey="hired"
+                    name="Hired"
+                    fill="#f97316"
+                    radius={[4, 4, 0, 0]}
+                    activeBar={{ fill: "#f97316", opacity: 0.8 }}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -152,23 +247,42 @@ export default function Dashboard() {
             <CardDescription>Latest agency applications.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6 mt-4">
+            <div className="space-y-5 mt-2">
               {loading ? (
-                <p className="text-sm text-muted-foreground">Loading proposals...</p>
+                <p className="text-sm text-muted-foreground">Loading...</p>
               ) : recentProposals.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No recent proposals found.</p>
+                <p className="text-sm text-muted-foreground">
+                  No proposals yet. Head to{" "}
+                  <a href="/proposals" className="underline text-primary">
+                    Proposals
+                  </a>{" "}
+                  to log one!
+                </p>
               ) : (
                 recentProposals.map((proposal) => (
-                  <div key={proposal.id} className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium leading-none">{proposal.jobTitle}</p>
-                      <p className="text-xs text-muted-foreground">{proposal.Profile?.name || 'Unknown Profile'}</p>
+                  <div
+                    key={proposal.id}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="space-y-0.5 max-w-[65%]">
+                      <p className="text-sm font-medium leading-none truncate">
+                        {proposal.jobTitle}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {proposal.Profile?.name || "Unknown Profile"}
+                      </p>
                     </div>
-                    <Badge variant={
-                      proposal.status === 'Hired' ? 'default' : 
-                      proposal.status === 'Interview' ? 'secondary' : 
-                      proposal.status === 'Rejected' ? 'destructive' : 'outline'
-                    }>
+                    <Badge
+                      variant={
+                        proposal.status === "Hired"
+                          ? "default"
+                          : proposal.status === "Interview"
+                          ? "secondary"
+                          : proposal.status === "Rejected"
+                          ? "destructive"
+                          : "outline"
+                      }
+                    >
                       {proposal.status}
                     </Badge>
                   </div>
