@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Users, Plus, Edit, Trash2, Zap } from "lucide-react"
+import { Users, Plus, Edit, Trash2, Zap, FileText } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 
 const AVAILABILITY_OPTIONS = ["Available", "Busy", "Unavailable"]
@@ -30,6 +30,7 @@ const emptyForm = {
   activeContracts: 0,
   totalEarnings: 0,
   availability: "Available",
+  googleDocsLink: "",
 }
 
 export default function Profiles() {
@@ -65,6 +66,7 @@ export default function Profiles() {
         activeContracts: profile.activeContracts,
         totalEarnings: profile.totalEarnings,
         availability: profile.availability,
+        googleDocsLink: profile.googleDocsLink || "",
       })
     } else {
       setFormData(emptyForm)
@@ -85,6 +87,7 @@ export default function Profiles() {
       activeContracts: Number(formData.activeContracts),
       totalEarnings: Number(formData.totalEarnings),
       availability: formData.availability,
+      googleDocsLink: formData.googleDocsLink,
     }
 
     let error;
@@ -136,7 +139,7 @@ export default function Profiles() {
 
       {/* Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{formData.id ? "Edit Profile" : "Add New Profile"}</DialogTitle>
             <DialogDescription>
@@ -166,6 +169,17 @@ export default function Profiles() {
                 placeholder="e.g. Full Stack Development"
                 value={formData.niche}
                 onChange={(e) => setFormData({ ...formData, niche: e.target.value })}
+              />
+            </div>
+
+            <div className="col-span-2 grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="googleDocs" className="text-right">Google Docs URL</Label>
+              <Input
+                id="googleDocs"
+                className="col-span-3"
+                placeholder="https://docs.google.com/document/d/..."
+                value={formData.googleDocsLink}
+                onChange={(e) => setFormData({ ...formData, googleDocsLink: e.target.value })}
               />
             </div>
 
@@ -270,7 +284,7 @@ export default function Profiles() {
           {profiles.map((profile) => (
             <Card
               key={profile.id}
-              className="relative overflow-hidden group hover:border-foreground/30 transition-all"
+              className="relative overflow-hidden group hover:border-foreground/30 transition-all flex flex-col"
             >
               {/* Action Buttons — revealed on hover */}
               <div className="absolute right-3 top-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
@@ -305,7 +319,7 @@ export default function Profiles() {
                 <CardDescription className="text-sm font-medium">{profile.niche}</CardDescription>
               </CardHeader>
 
-              <CardContent>
+              <CardContent className="flex flex-col flex-grow">
                 <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                   <div>
                     <p className="text-muted-foreground text-xs mb-0.5">Hourly Rate</p>
@@ -335,7 +349,7 @@ export default function Profiles() {
 
                 {/* Skills */}
                 {Array.isArray(profile.skills) && profile.skills.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 pt-3 border-t border-border/50">
+                  <div className="flex flex-wrap gap-1.5 py-3 border-t border-border/50">
                     {profile.skills.slice(0, 4).map((skill: string) => (
                       <Badge key={skill} variant="outline" className="text-[10px] h-5 px-1.5">
                         {skill}
@@ -348,6 +362,21 @@ export default function Profiles() {
                     )}
                   </div>
                 )}
+                
+                {/* Google Docs Link */}
+                <div className="mt-auto pt-3 flex gap-2">
+                  <Button 
+                    variant="secondary" 
+                    className="w-full text-xs h-8"
+                    disabled={!profile.googleDocsLink}
+                    onClick={() => {
+                      if (profile.googleDocsLink) window.open(profile.googleDocsLink, '_blank')
+                    }}
+                  >
+                    <FileText className="w-3.5 h-3.5 mr-2" />
+                    {profile.googleDocsLink ? 'View Google Doc' : 'No Doc Attached'}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
