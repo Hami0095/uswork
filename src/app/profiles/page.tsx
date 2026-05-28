@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Users, Plus, Edit, Trash2, Zap, FileText } from "lucide-react"
+import { Users, Plus, Edit, Trash2, Zap, FileText, Mail, Lock } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 
 const AVAILABILITY_OPTIONS = ["Available", "Busy", "Unavailable"]
@@ -31,6 +31,8 @@ const emptyForm = {
   totalEarnings: 0,
   availability: "Available",
   googleDocsLink: "",
+  email: "",
+  password: "",
 }
 
 export default function Profiles() {
@@ -67,6 +69,8 @@ export default function Profiles() {
         totalEarnings: profile.totalEarnings,
         availability: profile.availability,
         googleDocsLink: profile.googleDocsLink || "",
+        email: profile.email || "",
+        password: profile.password || "",
       })
     } else {
       setFormData(emptyForm)
@@ -88,6 +92,8 @@ export default function Profiles() {
       totalEarnings: Number(formData.totalEarnings),
       availability: formData.availability,
       googleDocsLink: formData.googleDocsLink,
+      email: formData.email,
+      password: formData.password,
     }
 
     let error;
@@ -169,6 +175,29 @@ export default function Profiles() {
                 placeholder="e.g. Full Stack Development"
                 value={formData.niche}
                 onChange={(e) => setFormData({ ...formData, niche: e.target.value })}
+              />
+            </div>
+
+            <div className="col-span-2 grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="email" className="text-right">Upwork Email</Label>
+              <Input
+                id="email"
+                className="col-span-3"
+                placeholder="e.g. alice@example.com"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
+            </div>
+
+            <div className="col-span-2 grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="password" className="text-right">Password</Label>
+              <Input
+                id="password"
+                className="col-span-3"
+                type="password"
+                placeholder="Profile Login Password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               />
             </div>
 
@@ -320,6 +349,20 @@ export default function Profiles() {
               </CardHeader>
 
               <CardContent className="flex flex-col flex-grow">
+                {/* Credentials Preview */}
+                {(profile.email || profile.password) && (
+                  <div className="bg-secondary/30 rounded-md p-3 mb-4 space-y-1.5">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Mail className="w-3.5 h-3.5" />
+                      <span className="font-mono">{profile.email || "—"}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Lock className="w-3.5 h-3.5" />
+                      <span className="font-mono">{profile.password ? "••••••••" : "—"}</span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                   <div>
                     <p className="text-muted-foreground text-xs mb-0.5">Hourly Rate</p>
