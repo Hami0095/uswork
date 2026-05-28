@@ -194,7 +194,7 @@ export default function Profiles() {
               <Input
                 id="password"
                 className="col-span-3"
-                type="password"
+                type="text"
                 placeholder="Profile Login Password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -358,7 +358,7 @@ export default function Profiles() {
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Lock className="w-3.5 h-3.5" />
-                      <span className="font-mono">{profile.password ? "••••••••" : "—"}</span>
+                      <span className="font-mono">{profile.password || "—"}</span>
                     </div>
                   </div>
                 )}
