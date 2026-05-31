@@ -1,0 +1,3 @@
+ALTER TABLE public."Profile"
+ADD COLUMN IF NOT EXISTS "email" TEXT,
+ADD COLUMN IF NOT EXISTS "password" TEXT;
