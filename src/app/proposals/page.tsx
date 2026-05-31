@@ -59,22 +59,39 @@ export default function Proposals() {
   }
 
   const handleSave = async () => {
+    if (!formData.profileId) {
+      alert("Please select a profile first. If you don't have any profiles, please create one first.")
+      return
+    }
+
     if (formData.id) {
       // Update
-      await supabase.from('Proposal').update({
+      const { error } = await supabase.from('Proposal').update({
         jobTitle: formData.jobTitle,
         connectsSpent: formData.connectsSpent,
         status: formData.status,
         profileId: formData.profileId,
       }).eq('id', formData.id)
+      
+      if (error) {
+        console.error("Error updating proposal:", error)
+        alert("Failed to update proposal: " + error.message)
+        return
+      }
     } else {
       // Create
-      await supabase.from('Proposal').insert({
+      const { error } = await supabase.from('Proposal').insert({
         jobTitle: formData.jobTitle,
         connectsSpent: formData.connectsSpent,
         status: formData.status,
         profileId: formData.profileId,
       })
+      
+      if (error) {
+        console.error("Error creating proposal:", error)
+        alert("Failed to save proposal: " + error.message)
+        return
+      }
     }
     setIsModalOpen(false)
     fetchData()
