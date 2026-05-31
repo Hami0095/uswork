@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Plus, Filter, Trash2, Edit } from "lucide-react"
@@ -14,7 +15,7 @@ export default function Proposals() {
   const [proposals, setProposals] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [formData, setFormData] = useState({ id: null, jobTitle: '', connectsSpent: 0, status: 'Applied', profileId: '' })
+  const [formData, setFormData] = useState({ id: null, jobTitle: '', connectsSpent: 0, status: 'Applied', profileId: '', proposalText: '' })
   const [profiles, setProfiles] = useState<any[]>([])
 
   useEffect(() => {
@@ -28,6 +29,7 @@ export default function Proposals() {
       .select(`
         id,
         jobTitle,
+        proposalText,
         status,
         connectsSpent,
         appliedAt,
@@ -48,12 +50,13 @@ export default function Proposals() {
       setFormData({
         id: proposal.id,
         jobTitle: proposal.jobTitle,
+        proposalText: proposal.proposalText || '',
         connectsSpent: proposal.connectsSpent,
         status: proposal.status,
         profileId: proposal.profileId,
       })
     } else {
-      setFormData({ id: null, jobTitle: '', connectsSpent: 0, status: 'Applied', profileId: profiles.length > 0 ? profiles[0].id : '' })
+      setFormData({ id: null, jobTitle: '', connectsSpent: 0, status: 'Applied', profileId: profiles.length > 0 ? profiles[0].id : '', proposalText: '' })
     }
     setIsModalOpen(true)
   }
@@ -68,6 +71,7 @@ export default function Proposals() {
       // Update
       const { error } = await supabase.from('Proposal').update({
         jobTitle: formData.jobTitle,
+        proposalText: formData.proposalText,
         connectsSpent: formData.connectsSpent,
         status: formData.status,
         profileId: formData.profileId,
@@ -82,6 +86,7 @@ export default function Proposals() {
       // Create
       const { error } = await supabase.from('Proposal').insert({
         jobTitle: formData.jobTitle,
+        proposalText: formData.proposalText,
         connectsSpent: formData.connectsSpent,
         status: formData.status,
         profileId: formData.profileId,
@@ -129,6 +134,10 @@ export default function Proposals() {
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="jobTitle" className="text-right">Job Title</Label>
               <Input id="jobTitle" className="col-span-3" value={formData.jobTitle} onChange={(e) => setFormData({...formData, jobTitle: e.target.value})} />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="proposalText" className="text-right">Cover Letter</Label>
+              <Textarea id="proposalText" className="col-span-3 min-h-[100px]" value={formData.proposalText} onChange={(e) => setFormData({...formData, proposalText: e.target.value})} />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="profile" className="text-right">Profile</Label>
