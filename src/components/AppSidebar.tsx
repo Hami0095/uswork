@@ -10,6 +10,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { Home, Users, Briefcase, FileText, Zap, Settings, Activity } from "lucide-react"
+import { ThemeToggle } from "@/components/ThemeToggle"
 
 // Menu items.
 const items = [
@@ -58,8 +59,8 @@ const items = [
 export function AppSidebar() {
   return (
     <Sidebar className="border-r border-border">
-      <SidebarHeader className="p-4">
-        <h2 className="text-xl font-bold tracking-tight">Agency Operator</h2>
+      <SidebarHeader className="p-4 flex flex-row items-center justify-between">
+        <h2 className="text-xl font-bold tracking-tight text-primary">UsWork</h2>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -80,6 +81,10 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <div className="p-4 mt-auto border-t border-border flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">Theme</span>
+        <ThemeToggle />
+      </div>
     </Sidebar>
   )
 }

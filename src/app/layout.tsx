@@ -15,9 +15,10 @@ const geistMono = Geist_Mono({
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/AppSidebar"
 import { Toaster } from "@/components/ui/sonner"
+import { ThemeProvider } from "@/components/ThemeProvider"
 
 export const metadata: Metadata = {
-  title: "Upwork Agency Operator",
+  title: "UsWork",
   description: "Premium internal SaaS platform for managing Upwork freelancer profiles.",
 };
 
@@ -30,16 +31,24 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <SidebarProvider>
-          <AppSidebar />
-          <main className="flex-1 w-full">
-            <SidebarTrigger className="m-4 lg:hidden" />
-            {children}
-          </main>
-        </SidebarProvider>
-        <Toaster />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <SidebarProvider>
+            <AppSidebar />
+            <main className="flex-1 w-full">
+              <SidebarTrigger className="m-4 lg:hidden" />
+              {children}
+            </main>
+          </SidebarProvider>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );
